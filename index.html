@@ -9,344 +9,42 @@
             margin: 0;
             overflow: hidden;
         }
+
+        h4{
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            margin: 0;
+            font-size: 75px;
+            backdrop-filter: blur(2px);
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            font-family: 'Nunito', sans-serif;
+            color: rgb(255, 255, 255);
+            opacity: 0;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap" rel="stylesheet">
 </head>
 
 <body>
-
-    <script type="module">
-        import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-
-        // SCENE
-
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x070a12);
-        await document.fonts.load("900 220px Nunito");
-
-        // CAMERA
-
-        const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 1000);
-
-        // RENDERER
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(innerWidth, innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.body.appendChild(renderer.domElement);
-
-        // SHADOWS
-
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-        // LIGHTS
-
-        scene.add(new THREE.AmbientLight(0xffffff, 0.25));
-
-        const key = new THREE.DirectionalLight(0xffffff, 1.2);
-        key.position.set(5, 10, 5);
-        key.castShadow = true;
-
-        scene.add(key);
-
-        const rim = new THREE.DirectionalLight(0x88aaff, 0.3);
-        rim.position.set(-5, 3, -5);
-        scene.add(rim);
-
-        scene.add(new THREE.HemisphereLight(0x9fd3ff, 0x1a1a2e, 0.5));
-
-        // GRID
-
-        const size = 10;
-
-        const tileSize = 1.2;
-
-        const tiles = [];
-
-        const floor = new THREE.Group();
-        scene.add(floor);
-
-        function makeTile(x, z) {
-
-            const geo = new THREE.BoxGeometry(1, 0.1, 1);
-
-            const mat = new THREE.MeshStandardMaterial({
-                color: 0xfafafa,
-                roughness: 0.5,
-                metalness: 0.1
-            });
-
-            const mesh = new THREE.Mesh(geo, mat);
-
-            mesh.position.set(x, 0, z);
-
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-
-            floor.add(mesh);
-
-            tiles.push({ mesh, x, z, color: "gray" });
-        }
-
-        for (let i = -size; i <= size; i++) {
-            for (let j = -size; j <= size; j++) {
-                makeTile(i * tileSize, j * tileSize);
-            }
-        }
-
-        // PLAYER
-        let playerColour = 0xffff00;
-
-        const player = new THREE.Mesh(
-            new THREE.BoxGeometry(0.6, 1, 0.6),
-            new THREE.MeshStandardMaterial({
-                color: playerColour,
-                emissive: playerColour,
-                emissiveIntensity: 0.7,
-                roughness: 0.3
-            })
-        );
-
-        player.position.y = 0.6;
-        player.position.z = 4;
-
-        player.castShadow = true;
-
-        scene.add(player);
-
-        //CONTROLS
-
-        const keys = {};
-        const speed = 0.05;
-        let angle = 0;
-        document.onkeydown = e => keys[e.key] = true;
-        document.onkeyup = e => keys[e.key] = false;
-
-        function updatePlayer() {
-            if (keys.w) {
-                player.position.z -= Math.cos(angle) * speed;
-                player.position.x -= Math.sin(angle) * speed;
-            }
-
-            if (keys.s) {
-                player.position.z += Math.cos(angle) * speed;
-                player.position.x += Math.sin(angle) * speed;
-            }
-            if (keys.a) angle += 0.05
-            if (keys.d) angle -= 0.05
-            player.rotation.y = angle;
-            let isOnVisible = false;
-            tiles.forEach(function(t){
-                let dx = Math.abs(player.position.x - t.x);
-                let dz = Math.abs(player.position.z - t.z);
-                if (dx < 0.6 && dz < 0.6 && t.mesh.visible) {
-                    isOnVisible = true;
-                }
-            })
-            if (isOnVisible == false){
-                fall()
-            }
-        }
-
-
-        // CAMERA
-
-        function updateCamera() {
-            camera.position.y = 4;
-            camera.position.x = player.position.x + Math.sin(angle) * 5;
-            camera.position.z = player.position.z + Math.cos(angle) * 5;
-            camera.lookAt(player.position);
-
-        }
-
-        // GAME
-
-        const palette = [
-            0xffd6a5,
-            0xfdffb6,
-            0xcaffbf,
-            0x9bf6ff,
-            0xa0c4ff,
-            0xbdb2ff,
-            0xf04f5a
-        ];
-        
-        let state = "wait";
-        let falling = false;
-        let timer = 0;
-        let wave = 1;
-        let waveMesh = null;
-        createWaveNum();
-
-        function startWave(){
-            state = "wait";
-            timer = 0;
-            player.position.y = 0.6;
-            player.position.x = 0;
-            player.position.z = 4
-            resetTiles();
-            createWaveNum()
-            playerColour = palette[Math.floor(Math.random() * palette.length)];
-            player.material.color.setHex(playerColour);
-            player.material.emissive.setHex(playerColour);
-
-        }
-
-        startWave();
-        /* colors */
-
-
-        function changeTilesColour() {
-            let targetColour = playerColour;
-            tiles.forEach(function (t) {
-                let colour = palette[Math.floor(Math.random() * palette.length)];
-                const chance = Math.max(0.02, 0.2 - wave * 0.01);
-                let isMatch = Math.random() < 0.25;
-                t.color = isMatch ? "match" : "mismatch";
-                colour = isMatch ? targetColour : palette[Math.floor(Math.random() * palette.length)];
-                if (isMatch){
-                    colour = targetColour;
-                }
-                else{
-                    let colourId = palette.indexOf(targetColour);
-                    let randomColour = palette[Math.floor(Math.random() * palette.length)];
-                    if (randomColour === targetColour){
-                        colour = palette[(colourId+1)%palette.length];
-
-                    }
-                    else{
-                        colour = randomColour;
-                    }
-                }
-                t.mesh.material.color.setHex(colour);
-                t.mesh.material.emissive.setHex(colour);
-                t.mesh.material.emissiveIntensity = 0.2;
-            })
-        }
-
-        function fall() {
-            if (falling){
-                return;
-            }
-            state = "fall";
-            falling = true;
-            let velocity = 0.1
-            wave = 1;
-            createWaveNum();
-            function drop() {
-                player.position.y -= velocity;
-                velocity += 0.01;
-                if (player.position.y < -10) {
-                    falling = false;
-                    startWave();
-                    return;
-                }
-                requestAnimationFrame(drop)
-            }
-            drop()
-        }
-
-        function resetTiles() {
-            tiles.forEach(function (t) {
-                t.mesh.material.color.setHex(0xfafafa)
-                t.mesh.material.emissive.setHex(0x000000)
-                t.mesh.visible = true;
-                t.color = "gray"
-            })
-        }
-
-        function check() {
-            let win = false
-            tiles.forEach(function (t) {
-                let dx = Math.abs(player.position.x - t.x);
-                let dz = Math.abs(player.position.z - t.z);
-                if (dx < 0.6 && dz < 0.6 && t.color == "match") {
-                    win = true;
-                }
-            })
-            tiles.forEach(function (t) {
-                if (t.color === "mismatch") {
-                    t.mesh.visible = false;
-                }
-            })
-            if (win) {
-                setTimeout(function () {
-                    wave++;
-                    startWave();
-                }, 2000)
-
-            }
-            else {
-                fall()
-            }
-        }
-
-        function createWaveNum(){
-            if (waveMesh){
-                scene.remove(waveMesh);
-            }
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            canvas.width = 1512;
-            canvas.height = 512;
-            ctx.fillStyle = "rgba(0,0,0,0)"
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = "700 100px Nunito";
-            ctx.fillStyle = "#ffffff";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText("round "+ wave+"😡", canvas.width / 2, canvas.height / 2);
-            const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.SpriteMaterial({ map: texture, transparent: true, color: 0xffffff });
-            waveMesh = new THREE.Sprite(material);
-            waveMesh.scale.set(3, 3, 1);
-            waveMesh.position.set(0, 1, 0);
-            scene.add(waveMesh);
-
-        }
-
-        function loop() {
-
-            requestAnimationFrame(loop);
-            if (state == "wait") {
-                timer++;
-                if (timer > 320) {
-                    state = "play";
-                    timer = 0;
-                    changeTilesColour();
-                }
-            }
-            if (state == "play") {
-                timer++;
-                if (timer > 320) {
-                    timer = 0;
-                    check();
-                }
-            }
-            updatePlayer();
-            updateCamera();
-
-            renderer.render(scene, camera);
-        }
-
-        loop();
-
-        addEventListener("resize", () => {
-            camera.aspect = innerWidth / innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(innerWidth, innerHeight);
-        });
+    <h4 id="yaywinner">you're a legend 🥹</h4>
+    <script type="module" src="script.js">
     </script>
+    
 </body>
 
 </html>
 
 <!-- resist when going towards border
  count down line
- change colour of player === the block colour 
+ change colour of player === the block colour 🦄
  if (chance == 0.02){
     wave.fillText("you're a legend")
     }
 home page 
-when walking diagonally on red blocks, dont fall --> 
+when walking diagonally on red blocks, dont fall
+round is always 2 after falling --> 
