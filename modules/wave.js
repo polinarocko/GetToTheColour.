@@ -2,9 +2,9 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 import {player} from './player.js'
 import {scene} from './scene.js'
 import {tiles} from './tiles.js'
+import {fall} from './fall.js'
+import {game} from './gamestate.js'
 
-let state = "wait";
-let falling = false;
 let timer = 0;
 let wave = 1;
 let waveMesh = null;
@@ -23,8 +23,7 @@ const palette = [
 
 export function startWave() {
     console.log(3);
-    
-    state = "wait";
+    game.state = "wait";
     timer = 0;
     player.position.y = 0.6;
     player.position.x = 0;
@@ -67,7 +66,7 @@ export function changeTilesColour() {
     tiles.forEach(function (t) {
         let colour = palette[Math.floor(Math.random() * palette.length)];
         const chance = Math.max(0.02, 0.2 - wave * 0.01);
-        if (chance == 0.17){
+        if (chance <= 0.02){
             yaywinner.style.opacity = 1;
         }
         let isMatch = Math.random() < chance;
@@ -104,27 +103,12 @@ function resetTiles() {
 }
 
 
-export function fall() {
-    if (falling) {
-        return;
-    }
-    state = "fall";
-    falling = true;
-    let velocity = 0.1
+export function resetWave(){
     wave = 1;
     createWaveNum();
-    function drop() {
-        player.position.y -= velocity;
-        velocity += 0.01;
-        if (player.position.y < -10) {
-            falling = false;
-            startWave();
-            return;
-        }
-        requestAnimationFrame(drop)
-    }
-    drop()
 }
+
+
 
 
 function check() {
@@ -132,7 +116,7 @@ function check() {
     tiles.forEach(function (t) {
         let dx = Math.abs(player.position.x - t.x);
         let dz = Math.abs(player.position.z - t.z);
-        if (dx < 0.6 && dz < 0.6 && t.color == "match") {
+        if (dx < 0.7 && dz < 0.7 && t.color == "match") {
             win = true;
         }
     })
@@ -145,6 +129,7 @@ function check() {
         setTimeout(function () {
             wave++;
             startWave();
+
         }, 2000)
 
     }
@@ -156,15 +141,15 @@ function check() {
 export function updateWave() {
     console.log(4);
     
-    if (state == "wait") {
+    if (game.state == "wait") {
         timer++;
         if (timer > 320) {
-            state = "play";
+            game.state = "play";
             timer = 0;
             changeTilesColour();
         }
     }
-    if (state == "play") {
+    if (game.state == "play") {
         timer++;
         if (timer > 320) {
             timer = 0;

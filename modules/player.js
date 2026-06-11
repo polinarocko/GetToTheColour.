@@ -1,4 +1,4 @@
-import { fall } from './wave.js'
+import { fall } from './fall.js'
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { scene } from './scene.js'
 import {tiles} from './tiles.js'
@@ -39,7 +39,7 @@ export function updatePlayer() {
     tiles.forEach(function (t) {
         let dx = Math.abs(player.position.x - t.x);
         let dz = Math.abs(player.position.z - t.z);
-        if (dx < 0.6 && dz < 0.6 && t.mesh.visible) {
+        if (dx < 0.7 && dz < 0.7 && t.mesh.visible) {
             isOnVisible = true;
         }
     })
