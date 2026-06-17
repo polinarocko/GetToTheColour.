@@ -9,6 +9,7 @@ let timer = 0;
 let wave = 1;
 let waveMesh = null;
 let yaywinner = document.getElementById("yaywinner")
+let line = document.querySelector(".line")
 
 let playerColour = 0xffff00;
 const palette = [
@@ -24,10 +25,9 @@ const palette = [
 export function startWave() {
     console.log(3);
     game.state = "wait";
+    line.classList.remove("lineshow")
     timer = 0;
     player.position.y = 0.6;
-    player.position.x = 0;
-    player.position.z = 4
     resetTiles();
     createWaveNum()
     playerColour = palette[Math.floor(Math.random() * palette.length)];
@@ -66,8 +66,9 @@ export function changeTilesColour() {
     tiles.forEach(function (t) {
         let colour = palette[Math.floor(Math.random() * palette.length)];
         const chance = Math.max(0.02, 0.2 - wave * 0.01);
-        if (chance <= 0.02){
+        if (chance <= 0.18){
             yaywinner.style.opacity = 1;
+            game.state = "win";
         }
         let isMatch = Math.random() < chance;
         t.color = isMatch ? "match" : "mismatch";
@@ -146,6 +147,8 @@ export function updateWave() {
         if (timer > 320) {
             game.state = "play";
             timer = 0;
+            line.classList.add("lineshow")
+            
             changeTilesColour();
         }
     }
@@ -155,5 +158,13 @@ export function updateWave() {
             timer = 0;
             check();
         }
+    }
+    if (game.state == "win"){
+        timer++;
+        if (timer > 15){
+            changeTilesColour();
+            timer = 0
+        }
+
     }
 }
